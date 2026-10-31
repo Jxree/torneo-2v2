@@ -19,7 +19,7 @@ body{margin:0}
   color-scheme:dark;
 }
 body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.4}
-.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px;max-width:1500px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px;max-width:1800px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
 header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
 .ttl{display:flex;flex-direction:column;gap:2px;min-width:0}
 .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
@@ -41,11 +41,11 @@ button{font:inherit;color:inherit;cursor:pointer}
 .scroll{overflow-x:auto;padding-bottom:6px}
 .hint{font-size:12px;color:var(--muted);display:none}
 @media (max-width:900px){.hint{display:block}}
-.bracket{display:grid;grid-template-columns:repeat(7,minmax(168px,1fr));gap:20px;min-width:1290px}
+.bracket{display:grid;grid-template-columns:repeat(9,minmax(160px,1fr));gap:20px;min-width:1600px}
 .col{display:flex;flex-direction:column;gap:10px}
 .colhead{font-family:var(--display);font-size:20px;letter-spacing:.08em;text-transform:uppercase;text-align:center;color:var(--muted);line-height:1}
 .col.L .colhead{color:var(--left)} .col.R .colhead{color:var(--right)} .col.F .colhead{color:var(--gold)}
-.colbody{flex:1;display:flex;flex-direction:column;min-height:600px}
+.colbody{flex:1;display:flex;flex-direction:column;min-height:1120px}
 .col.F .colbody{justify-content:center}
 .pair{position:relative;flex:1;display:flex;flex-direction:column;justify-content:space-around}
 
@@ -134,7 +134,7 @@ var firebaseConfig = {
   function normalize(v){
     v = v || {};
     var out = {name: v.name || "Torneo 2v2", teams: [], m: {}};
-    for (var i=0;i<16;i++){ var t=(v.teams||[])[i]||{}; out.teams[i]={a:t.a||"",b:t.b||""}; }
+    for (var i=0;i<32;i++){ var t=(v.teams||[])[i]||{}; out.teams[i]={a:t.a||"",b:t.b||""}; }
     var m=v.m||{};
     Object.keys(m).forEach(function(k){ var x=m[k]||{}; out.m[k]={w:(x.w==null?null:x.w), s:[(x.s||[])[0]||"",(x.s||[])[1]||""]}; });
     return out;
@@ -144,14 +144,14 @@ var firebaseConfig = {
   var canEdit=false, editing=false, ref=null, confirmReset=false, loginOpen=false, loginMsg="", configured=false, loaded=false;
   var saveTimer=null, status='live';
 
-  var ROUND = ["Octavos","Cuartos","Semifinal"];
+  var ROUND = ["16avos","Octavos","Cuartos","Semifinal"];
   function mid(side,r,i){ return side+r+"-"+i; }
   function rec(id){ return S.m[id] || {w:null,s:["",""]}; }
 
   function participants(id){
-    if(id==="F") return [winner("L2-0"), winner("R2-0")];
+    if(id==="F") return [winner("L3-0"), winner("R3-0")];
     var side=id[0], r=+id[1], i=+id.split("-")[1];
-    if(r===0){ var off = side==="L"?0:8; return [off+2*i, off+2*i+1]; }
+    if(r===0){ var off = side==="L"?0:16; return [off+2*i, off+2*i+1]; }
     return [winner(mid(side,r-1,2*i)), winner(mid(side,r-1,2*i+1))];
   }
   function winner(id){
@@ -188,7 +188,7 @@ var firebaseConfig = {
     return '<div class="match'+(extra||"")+'"><span class="num">'+label+'</span>'+teamRow(id,0)+teamRow(id,1)+'</div>';
   }
   function column(side,r){
-    var n = 4>>r, h='';
+    var n = 8>>r, h='';
     function lab(i){ return (side==="L"?"A":"B")+(r+1)+"·"+(i+1); }
     if(n===1) h='<div class="pair solo">'+matchHtml(mid(side,r,0),lab(0))+'</div>';
     else for(var i=0;i<n;i+=2) h+='<div class="pair">'+matchHtml(mid(side,r,i),lab(i))+matchHtml(mid(side,r,i+1),lab(i+1))+'</div>';
@@ -204,7 +204,7 @@ var firebaseConfig = {
     var pillTxt = !loaded&&configured?'Conectando…':status==='saving'?'Guardando…':status==='err'?'No se guardó':(editing?'Guardado':'En vivo');
 
     var h = '<div class="wrap">'
-      + '<header class="top"><div class="ttl"><span class="eyebrow">2 vs 2 · 16 equipos · 32 jugadores</span><h1>'+esc(S.name||"Torneo 2v2")+'</h1></div>'
+      + '<header class="top"><div class="ttl"><span class="eyebrow">2 vs 2 · 32 equipos · 64 jugadores</span><h1>'+esc(S.name||"Torneo 2v2")+'</h1></div>'
       + '<div class="actions"><span class="'+pillCls+'"><span class="dot"></span>'+pillTxt+'</span>'
       + (canEdit ? '<button class="btn'+(editing?' on':'')+'" id="b-edit">'+(editing?'Terminar edición':'Editar resultados')+'</button>' : '')
       + '</div></header>';
@@ -214,19 +214,19 @@ var firebaseConfig = {
     }
 
     h += '<span class="hint">Desliza el bracket hacia los lados →</span><div class="scroll"><div class="bracket'+(editing?' editing':'')+'">'
-      + column("L",0)+column("L",1)+column("L",2)
+      + column("L",0)+column("L",1)+column("L",2)+column("L",3)
       + '<div class="col F"><div class="colhead">Final</div><div class="colbody"><div class="fstack">'
       + '<div class="champ"><span class="lbl">Campeones</span>'+champHtml+'</div>'
       + matchHtml("F","FINAL"," final")
       + '</div></div></div>'
-      + column("R",2)+column("R",1)+column("R",0)
+      + column("R",3)+column("R",2)+column("R",1)+column("R",0)
       + '</div></div>';
 
     if(editing){
       h += '<section class="panel"><h2>Equipos y nombre</h2>'
-        + '<p class="note">Escribe los dos jugadores de cada equipo. Los equipos 1–8 van del lado izquierdo y los 9–16 del lado derecho; se enfrentan 1 vs 2, 3 vs 4, y así.</p>'
+        + '<p class="note">Escribe los dos jugadores de cada equipo. Los equipos 1–16 van del lado izquierdo y los 17–32 del lado derecho; se enfrentan 1 vs 2, 3 vs 4, y así.</p>'
         + '<div class="field"><label for="t-name">Nombre del torneo</label><input type="text" id="t-name" value="'+esc(S.name||"")+'"></div>'
-        + '<div class="sides">'+sideInputs("L",0)+sideInputs("R",8)+'</div>'
+        + '<div class="sides">'+sideInputs("L",0)+sideInputs("R",16)+'</div>'
         + '<div class="row-actions">'
         + (confirmReset
           ? '<div class="confirm">¿Borrar todos los ganadores y puntos? Los nombres se quedan. <button class="btn danger" id="b-reset-yes">Sí, borrar</button><button class="btn" id="b-reset-no">Cancelar</button></div>'
@@ -245,7 +245,7 @@ var firebaseConfig = {
   }
   function sideInputs(side,off){
     var h='<div class="side '+side+'"><h3>Lado '+(side==="L"?"izquierdo":"derecho")+'</h3><div class="tgrid"><span></span><span class="tl">Jugador 1</span><span class="tl">Jugador 2</span>';
-    for(var i=off;i<off+8;i++){
+    for(var i=off;i<off+16;i++){
       var t=S.teams[i];
       h+='<span class="n">'+(i+1)+'</span><input type="text" id="p-'+i+'-a" data-t="'+i+'" data-k="a" value="'+esc(t.a||"")+'" aria-label="Equipo '+(i+1)+' jugador 1"><input type="text" id="p-'+i+'-b" data-t="'+i+'" data-k="b" value="'+esc(t.b||"")+'" aria-label="Equipo '+(i+1)+' jugador 2">';
     }
