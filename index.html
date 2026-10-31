@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Torneo 2v2</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Teko:wght@400;500;600&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+*{box-sizing:border-box}
+body{margin:0}
+
+/* Layout: arena scoreboard — left side cool, right side warm, final + champion in the middle column; bracket scrolls sideways on phones */
+:root{
+  --bg:#11141f; --panel:#1a1f2e; --panel-2:#222839; --line:#323a52;
+  --fg:#e9ecf5; --muted:#8c94ad;
+  --left:#3cc4d6; --right:#ff7a8a; --gold:#f2c14e; --gold-ink:#2a2006;
+  --display:"Teko","Barlow Condensed","Arial Narrow",sans-serif;
+  --body:"Barlow","Segoe UI",system-ui,sans-serif;
+  color-scheme:dark;
+}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.4}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px;max-width:1500px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+.ttl{display:flex;flex-direction:column;gap:2px;min-width:0}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
+h1{font-family:var(--display);font-weight:500;font-size:46px;line-height:.9;margin:0;letter-spacing:.02em;text-wrap:balance}
+.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;background:var(--panel);border:1px solid var(--line);font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--right);box-shadow:0 0 0 0 var(--right);animation:pulse 1.8s infinite}
+.pill.saving .dot{background:var(--gold);animation:none}
+.pill.err .dot{background:#ff4d4d;animation:none}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,122,138,.6)}70%{box-shadow:0 0 0 8px rgba(255,122,138,0)}100%{box-shadow:0 0 0 0 rgba(255,122,138,0)}}
+@media (prefers-reduced-motion:reduce){.dot{animation:none}}
+button{font:inherit;color:inherit;cursor:pointer}
+.btn{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:7px 14px;font-weight:600}
+.btn:hover{border-color:var(--muted)}
+.btn.on{background:var(--gold);color:var(--gold-ink);border-color:var(--gold)}
+.btn.danger{color:var(--right)}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+.scroll{overflow-x:auto;padding-bottom:6px}
+.hint{font-size:12px;color:var(--muted);display:none}
+@media (max-width:900px){.hint{display:block}}
+.bracket{display:grid;grid-template-columns:repeat(7,minmax(168px,1fr));gap:20px;min-width:1290px}
+.col{display:flex;flex-direction:column;gap:10px}
+.colhead{font-family:var(--display);font-size:20px;letter-spacing:.08em;text-transform:uppercase;text-align:center;color:var(--muted);line-height:1}
+.col.L .colhead{color:var(--left)} .col.R .colhead{color:var(--right)} .col.F .colhead{color:var(--gold)}
+.colbody{flex:1;display:flex;flex-direction:column;min-height:600px}
+.col.F .colbody{justify-content:center}
+.pair{position:relative;flex:1;display:flex;flex-direction:column;justify-content:space-around}
+
+.match{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:visible}
+.match .num{position:absolute;top:-9px;left:8px;font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--muted);background:var(--bg);padding:0 5px}
+.col.L .pair::after,.col.R .pair::after{content:"";position:absolute;top:25%;bottom:25%;width:9px;border:2px solid var(--line)}
+.col.L .pair::after{right:-11px;border-left:0;border-radius:0 6px 6px 0}
+.col.R .pair::after{left:-11px;border-right:0;border-radius:6px 0 0 6px}
+.col.L .pair::before,.col.R .pair::before{content:"";position:absolute;top:calc(50% - 1px);width:9px;height:2px;background:var(--line)}
+.col.L .pair::before{right:-20px} .col.R .pair::before{left:-20px}
+.pair.solo::after{display:none}
+.col.L .pair.solo::before{right:-20px;width:20px} .col.R .pair.solo::before{left:-20px;width:20px}
+.col.L .match{border-left:3px solid var(--left)} .col.R .match{border-right:3px solid var(--right)}
+.match>.team:first-of-type{border-radius:5px 5px 0 0}
+.match>.team:last-child{border-radius:0 0 5px 5px}
+.team{box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:7px 9px;width:100%;background:none;border:0;text-align:left;min-height:38px}
+.team + .team{border-top:1px solid var(--line)}
+.team .seed{font-size:11px;color:var(--muted);width:16px;flex:none;font-variant-numeric:tabular-nums}
+.team .names{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.15}
+.team .names span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;font-size:13px}
+.team .score{font-family:var(--display);font-size:22px;line-height:1;min-width:22px;text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.team.tbd .names span{color:var(--muted);font-style:italic;font-weight:400}
+.team.win{background:linear-gradient(90deg,rgba(242,193,78,.16),rgba(242,193,78,.04))}
+.team.win .names span{color:var(--fg);font-weight:700}
+.team.win .score{color:var(--gold)}
+.team.lose .names span{color:var(--muted);text-decoration:line-through;text-decoration-color:rgba(140,148,173,.5)}
+.editing .team.clickable{cursor:pointer}
+.editing .team.clickable:hover{background:var(--panel-2)}
+.editing .team.win.clickable:hover{background:linear-gradient(90deg,rgba(242,193,78,.24),rgba(242,193,78,.08))}
+.score-in{width:42px;padding:3px 4px;border-radius:5px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font-family:var(--display);font-size:20px;text-align:center;font-variant-numeric:tabular-nums}
+
+.champ{position:absolute;left:0;right:0;bottom:calc(100% + 24px);background:var(--panel);border:1px solid var(--gold);border-radius:10px;padding:14px 12px;text-align:center;display:flex;flex-direction:column;gap:4px}
+.champ .lbl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);font-weight:700}
+.champ .who{font-family:var(--display);font-size:26px;line-height:1;font-weight:500}
+.champ .who.tbd{color:var(--muted);font-size:20px}
+.match.final{border:1px solid var(--gold)}
+.fstack{position:relative}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.panel h2{font-family:var(--display);font-weight:500;font-size:26px;margin:0;line-height:1}
+.panel p.note{margin:0;color:var(--muted);font-size:13px;max-width:70ch}
+.field{display:flex;flex-direction:column;gap:4px;max-width:420px}
+.field label,.tgrid .tl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+input[type=text]{width:100%;padding:7px 9px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit;font-size:14px;min-width:0}
+.sides{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:760px){.sides{grid-template-columns:1fr}}
+.side h3{margin:0 0 8px;font-size:13px;letter-spacing:.1em;text-transform:uppercase}
+.side.L h3{color:var(--left)} .side.R h3{color:var(--right)}
+.tgrid{display:grid;grid-template-columns:28px 1fr 1fr;gap:6px 8px;align-items:center}
+.tgrid .n{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.row-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px}
+.how{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted)}
+.how b{color:var(--fg)}
+
+.login{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.login input{width:200px}
+.msg{font-size:13px;color:var(--right)}
+.setup{background:var(--panel);border:1px solid var(--right);border-radius:10px;padding:14px;font-size:14px}
+footer{font-size:12px;color:var(--muted);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.linkbtn{background:none;border:0;color:var(--muted);text-decoration:underline;padding:0}
+
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+// ===== PASO 4 DE LA GUÍA: pega aquí la configuración de tu proyecto de Firebase =====
+var firebaseConfig = {
+  apiKey: "PEGA_AQUI_TU_API_KEY",
+  authDomain: "",
+  databaseURL: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
+};
+</script>
+<script>
+(function(){
+  var S;
+  function normalize(v){
+    v = v || {};
+    var out = {name: v.name || "Torneo 2v2", teams: [], m: {}};
+    for (var i=0;i<16;i++){ var t=(v.teams||[])[i]||{}; out.teams[i]={a:t.a||"",b:t.b||""}; }
+    var m=v.m||{};
+    Object.keys(m).forEach(function(k){ var x=m[k]||{}; out.m[k]={w:(x.w==null?null:x.w), s:[(x.s||[])[0]||"",(x.s||[])[1]||""]}; });
+    return out;
+  }
+  S = normalize(null);
+
+  var canEdit=false, editing=false, ref=null, confirmReset=false, loginOpen=false, loginMsg="", configured=false, loaded=false;
+  var saveTimer=null, status='live';
+
+  var ROUND = ["Octavos","Cuartos","Semifinal"];
+  function mid(side,r,i){ return side+r+"-"+i; }
+  function rec(id){ return S.m[id] || {w:null,s:["",""]}; }
+
+  function participants(id){
+    if(id==="F") return [winner("L2-0"), winner("R2-0")];
+    var side=id[0], r=+id[1], i=+id.split("-")[1];
+    if(r===0){ var off = side==="L"?0:8; return [off+2*i, off+2*i+1]; }
+    return [winner(mid(side,r-1,2*i)), winner(mid(side,r-1,2*i+1))];
+  }
+  function winner(id){
+    var p=participants(id), w=rec(id).w;
+    return (w!=null && (p[0]===w || p[1]===w)) ? w : null;
+  }
+  function tname(t){
+    var x=S.teams[t]||{}; var a=(x.a||"").trim(), b=(x.b||"").trim();
+    if(!a && !b) return ["Equipo "+(t+1),""];
+    return [a||"—", b||"—"];
+  }
+  function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+
+  function teamRow(id, slot){
+    var p=participants(id), t=p[slot], w=winner(id), r=rec(id);
+    var cls="team", inner;
+    if(t==null){
+      cls+=" tbd";
+      inner='<span class="seed"></span><span class="names"><span>Por definir</span></span><span class="score"></span>';
+    } else {
+      if(w!=null) cls += (w===t?" win":" lose");
+      var n=tname(t);
+      var sc = r.s && r.s[slot]!=null ? r.s[slot] : "";
+      var scoreHtml = id!=="F" ? '' : editing
+        ? '<input class="score-in" id="s-'+id+'-'+slot+'" inputmode="numeric" data-id="'+id+'" data-slot="'+slot+'" value="'+esc(sc)+'" aria-label="Puntos">'
+        : '<span class="score">'+esc(sc)+'</span>';
+      inner='<span class="seed">'+(t+1)+'</span><span class="names" title="'+esc(n.join(" / "))+'"><span>'+esc(n[0])+'</span>'+(n[1]?'<span>'+esc(n[1])+'</span>':'')+'</span>'+scoreHtml;
+      if(editing) cls+=" clickable";
+    }
+    var tag = (editing && t!=null) ? 'div role="button" tabindex="0"' : 'div';
+    return '<'+tag+' class="'+cls+'" data-pick="'+id+'" data-team="'+(t==null?"":t)+'">'+inner+'</div>';
+  }
+  function matchHtml(id, label, extra){
+    return '<div class="match'+(extra||"")+'"><span class="num">'+label+'</span>'+teamRow(id,0)+teamRow(id,1)+'</div>';
+  }
+  function column(side,r){
+    var n = 4>>r, h='';
+    function lab(i){ return (side==="L"?"A":"B")+(r+1)+"·"+(i+1); }
+    if(n===1) h='<div class="pair solo">'+matchHtml(mid(side,r,0),lab(0))+'</div>';
+    else for(var i=0;i<n;i+=2) h+='<div class="pair">'+matchHtml(mid(side,r,i),lab(i))+matchHtml(mid(side,r,i+1),lab(i+1))+'</div>';
+    return '<div class="col '+side+'"><div class="colhead">'+ROUND[r]+'</div><div class="colbody">'+h+'</div></div>';
+  }
+
+  function render(){
+    var champ = winner("F");
+    var champHtml = champ==null
+      ? '<div class="who tbd">Por definir</div>'
+      : '<div class="who">'+esc(tname(champ).filter(Boolean).join(" & "))+'</div>';
+    var pillCls = status==='saving'?'pill saving':status==='err'?'pill err':'pill';
+    var pillTxt = !loaded&&configured?'Conectando…':status==='saving'?'Guardando…':status==='err'?'No se guardó':(editing?'Guardado':'En vivo');
+
+    var h = '<div class="wrap">'
+      + '<header class="top"><div class="ttl"><span class="eyebrow">2 vs 2 · 16 equipos · 32 jugadores</span><h1>'+esc(S.name||"Torneo 2v2")+'</h1></div>'
+      + '<div class="actions"><span class="'+pillCls+'"><span class="dot"></span>'+pillTxt+'</span>'
+      + (canEdit ? '<button class="btn'+(editing?' on':'')+'" id="b-edit">'+(editing?'Terminar edición':'Editar resultados')+'</button>' : '')
+      + '</div></header>';
+
+    if(editing){
+      h += '<div class="how"><span><b>Toca un equipo</b> para marcarlo como ganador (tócalo otra vez para quitarlo).</span><span>Solo la <b>final</b> lleva marcador.</span><span>Los cambios se publican solos en un par de segundos.</span></div>';
+    }
+
+    h += '<span class="hint">Desliza el bracket hacia los lados →</span><div class="scroll"><div class="bracket'+(editing?' editing':'')+'">'
+      + column("L",0)+column("L",1)+column("L",2)
+      + '<div class="col F"><div class="colhead">Final</div><div class="colbody"><div class="fstack">'
+      + '<div class="champ"><span class="lbl">Campeones</span>'+champHtml+'</div>'
+      + matchHtml("F","FINAL"," final")
+      + '</div></div></div>'
+      + column("R",2)+column("R",1)+column("R",0)
+      + '</div></div>';
+
+    if(editing){
+      h += '<section class="panel"><h2>Equipos y nombre</h2>'
+        + '<p class="note">Escribe los dos jugadores de cada equipo. Los equipos 1–8 van del lado izquierdo y los 9–16 del lado derecho; se enfrentan 1 vs 2, 3 vs 4, y así.</p>'
+        + '<div class="field"><label for="t-name">Nombre del torneo</label><input type="text" id="t-name" value="'+esc(S.name||"")+'"></div>'
+        + '<div class="sides">'+sideInputs("L",0)+sideInputs("R",8)+'</div>'
+        + '<div class="row-actions">'
+        + (confirmReset
+          ? '<div class="confirm">¿Borrar todos los ganadores y puntos? Los nombres se quedan. <button class="btn danger" id="b-reset-yes">Sí, borrar</button><button class="btn" id="b-reset-no">Cancelar</button></div>'
+          : '<button class="btn danger" id="b-reset">Reiniciar resultados</button>')
+        + '</div></section>';
+    }
+    h += '<footer>';
+    if(!configured) h += '<div class="setup">Falta pegar la configuración de Firebase en <b>index.html</b> (busca <b>firebaseConfig</b>).</div>';
+    else if(canEdit) h += '<span>Organizador conectado</span><button class="linkbtn" id="b-logout">Salir</button>';
+    else if(loginOpen) h += '<form class="login" id="f-login"><input type="text" id="l-email" placeholder="Correo" autocomplete="username"><input type="password" id="l-pass" placeholder="Contraseña" autocomplete="current-password" style="width:200px;padding:7px 9px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit"><button class="btn" type="submit">Entrar</button><button class="linkbtn" type="button" id="b-login-cancel">Cancelar</button>'+(loginMsg?'<span class="msg">'+esc(loginMsg)+'</span>':'')+'</form>';
+    else h += '<button class="linkbtn" id="b-login">Organizador</button>';
+    h += '</footer></div>';
+    var keepFocus = document.activeElement && document.activeElement.id;
+    document.getElementById('app').innerHTML = h;
+    if(keepFocus && /^l-/.test(keepFocus)){ var el=document.getElementById(keepFocus); if(el) el.focus(); }
+  }
+  function sideInputs(side,off){
+    var h='<div class="side '+side+'"><h3>Lado '+(side==="L"?"izquierdo":"derecho")+'</h3><div class="tgrid"><span></span><span class="tl">Jugador 1</span><span class="tl">Jugador 2</span>';
+    for(var i=off;i<off+8;i++){
+      var t=S.teams[i];
+      h+='<span class="n">'+(i+1)+'</span><input type="text" id="p-'+i+'-a" data-t="'+i+'" data-k="a" value="'+esc(t.a||"")+'" aria-label="Equipo '+(i+1)+' jugador 1"><input type="text" id="p-'+i+'-b" data-t="'+i+'" data-k="b" value="'+esc(t.b||"")+'" aria-label="Equipo '+(i+1)+' jugador 2">';
+    }
+    return h+'</div></div>';
+  }
+
+  function changed(){ status='saving'; schedule(); }
+  function schedule(){
+    clearTimeout(saveTimer);
+    saveTimer=setTimeout(save,1400);
+  }
+  function save(){
+    if(!ref){ status='err'; render(); return; }
+    ref.set(S).then(function(){ status='live'; render(); }).catch(function(){ status='err'; render(); });
+  }
+
+  document.addEventListener('click', function(e){
+    var t=e.target;
+    if(t.closest('.score-in')) return;
+    if(t.closest('#b-edit')){
+      editing=!editing; confirmReset=false;
+      render(); return;
+    }
+    if(t.closest('#b-login')){ loginOpen=true; loginMsg=""; render(); var em=document.getElementById('l-email'); if(em) em.focus(); return; }
+    if(t.closest('#b-login-cancel')){ loginOpen=false; render(); return; }
+    if(t.closest('#b-logout')){ firebase.auth().signOut(); return; }
+    if(t.closest('#b-reset')){ confirmReset=true; render(); return; }
+    if(t.closest('#b-reset-no')){ confirmReset=false; render(); return; }
+    if(t.closest('#b-reset-yes')){ S.m={}; confirmReset=false; changed(); render(); return; }
+    var row=t.closest('.team.clickable');
+    if(row && editing) pick(row);
+  });
+  document.addEventListener('keydown', function(e){
+    if((e.key==='Enter'||e.key===' ') && e.target.classList && e.target.classList.contains('clickable')){ e.preventDefault(); pick(e.target); }
+  });
+  function pick(row){
+    var id=row.getAttribute('data-pick'), team=+row.getAttribute('data-team');
+    var r=rec(id); var w = winner(id)===team ? null : team;
+    S.m[id]={w:w, s:(r.s||["",""]).slice()};
+    changed(); render();
+  }
+  document.addEventListener('change', function(e){
+    var t=e.target;
+    if(t.classList.contains('score-in')){
+      var id=t.getAttribute('data-id'), slot=+t.getAttribute('data-slot');
+      var r=rec(id); var s=(r.s||["",""]).slice(); s[slot]=t.value.trim().slice(0,4);
+      S.m[id]={w:r.w, s:s}; changed(); render(); return;
+    }
+    if(t.id==='t-name'){ S.name=t.value.trim().slice(0,60)||"Torneo 2v2"; changed(); render(); return; }
+    if(t.dataset && t.dataset.t!=null){
+      S.teams[+t.dataset.t][t.dataset.k]=t.value.trim().slice(0,30); changed(); render();
+    }
+  });
+
+  document.addEventListener('submit', function(e){
+    if(e.target.id!=='f-login') return;
+    e.preventDefault();
+    var em=document.getElementById('l-email').value.trim(), pw=document.getElementById('l-pass').value;
+    firebase.auth().signInWithEmailAndPassword(em,pw).catch(function(){ loginMsg="Correo o contraseña incorrectos."; render(); });
+  });
+
+  configured = !!(window.firebaseConfig && firebaseConfig.apiKey && firebaseConfig.apiKey.indexOf("PEGA")!==0);
+  render();
+  if(!configured || !window.firebase) return;
+
+  firebase.initializeApp(firebaseConfig);
+  ref = firebase.database().ref('torneo');
+  ref.on('value', function(snap){
+    loaded=true;
+    if(status==='saving') return; // no pisar cambios que aún no se guardan
+    S = normalize(snap.val());
+    var a=document.activeElement;
+    if(a && a.tagName==='INPUT' && !/^l-/.test(a.id)) return; // no re-dibujar mientras escribes
+    render();
+  }, function(){ loaded=true; render(); });
+  firebase.auth().onAuthStateChanged(function(u){
+    canEdit=!!u; loginOpen=false; loginMsg="";
+    if(!u) editing=false;
+    render();
+  });
+})();
+</script>
+</body>
+</html>
