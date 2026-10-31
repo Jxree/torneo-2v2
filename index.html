@@ -94,7 +94,7 @@ input[type=text]{width:100%;padding:7px 9px;border-radius:6px;border:1px solid v
 @media (max-width:760px){.sides{grid-template-columns:1fr}}
 .side h3{margin:0 0 8px;font-size:13px;letter-spacing:.1em;text-transform:uppercase}
 .side.L h3{color:var(--left)} .side.R h3{color:var(--right)}
-.tgrid{display:grid;grid-template-columns:28px 1fr 1fr;gap:6px 8px;align-items:center}
+.tgrid{display:grid;grid-template-columns:28px 1fr;gap:6px 8px;align-items:center}
 .tgrid .n{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .row-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px}
@@ -160,8 +160,7 @@ var firebaseConfig = {
   }
   function tname(t){
     var x=S.teams[t]||{}; var a=(x.a||"").trim(), b=(x.b||"").trim();
-    if(!a && !b) return ["Equipo "+(t+1),""];
-    return [a||"—", b||"—"];
+    return [a || "Team "+(t+1), ""];
   }
   function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
 
@@ -223,8 +222,8 @@ var firebaseConfig = {
       + '</div></div>';
 
     if(editing){
-      h += '<section class="panel"><h2>Equipos y nombre</h2>'
-        + '<p class="note">Escribe los dos jugadores de cada equipo. Los equipos 1–16 van del lado izquierdo y los 17–32 del lado derecho; se enfrentan 1 vs 2, 3 vs 4, y así.</p>'
+      h += '<section class="panel"><h2>Teams y nombre del torneo</h2>'
+        + '<p class="note">Escribe el nombre de cada team. Los teams 1–16 van del lado izquierdo y los 17–32 del lado derecho; se enfrentan 1 vs 2, 3 vs 4, y así.</p>'
         + '<div class="field"><label for="t-name">Nombre del torneo</label><input type="text" id="t-name" value="'+esc(S.name||"")+'"></div>'
         + '<div class="sides">'+sideInputs("L",0)+sideInputs("R",16)+'</div>'
         + '<div class="row-actions">'
@@ -244,10 +243,10 @@ var firebaseConfig = {
     if(keepFocus && /^l-/.test(keepFocus)){ var el=document.getElementById(keepFocus); if(el) el.focus(); }
   }
   function sideInputs(side,off){
-    var h='<div class="side '+side+'"><h3>Lado '+(side==="L"?"izquierdo":"derecho")+'</h3><div class="tgrid"><span></span><span class="tl">Jugador 1</span><span class="tl">Jugador 2</span>';
+    var h='<div class="side '+side+'"><h3>Lado '+(side==="L"?"izquierdo":"derecho")+'</h3><div class="tgrid"><span></span><span class="tl">Nombre del team</span>';
     for(var i=off;i<off+16;i++){
       var t=S.teams[i];
-      h+='<span class="n">'+(i+1)+'</span><input type="text" id="p-'+i+'-a" data-t="'+i+'" data-k="a" value="'+esc(t.a||"")+'" aria-label="Equipo '+(i+1)+' jugador 1"><input type="text" id="p-'+i+'-b" data-t="'+i+'" data-k="b" value="'+esc(t.b||"")+'" aria-label="Equipo '+(i+1)+' jugador 2">';
+      h+='<span class="n">'+(i+1)+'</span><input type="text" id="p-'+i+'-a" data-t="'+i+'" data-k="a" value="'+esc(t.a||"")+'" placeholder="Team '+(i+1)+'" aria-label="Nombre del team '+(i+1)+'">';
     }
     return h+'</div></div>';
   }
